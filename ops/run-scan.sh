@@ -13,7 +13,8 @@ cd "${REPO_DIR}"
 
 mkdir -p logs data/raw data/out data/db
 
-LOG_FILE="${REPO_DIR}/logs/scan.log"
+# Wrapper log (do NOT write into logs/scan.log to avoid duplicating in-app logs).
+LOG_FILE="${REPO_DIR}/logs/run-scan.log"
 
 {
   echo "$(date -Is) INFO run-scan.sh starting"

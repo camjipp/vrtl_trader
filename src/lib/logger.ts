@@ -20,6 +20,7 @@ export async function createFileLogger(opts?: { logFile?: string }): Promise<Log
     const line = `${new Date().toISOString()} ${level} ${msg}\n`;
 
     // Console output is still valuable for cron / systemd logs.
+    // Important: this prints ONCE to console; wrapper scripts should not re-append stdout to scan.log.
     if (level === "ERROR") console.error(msg);
     else if (level === "WARN") console.warn(msg);
     else console.log(msg);

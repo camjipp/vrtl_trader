@@ -11,6 +11,8 @@ import { appendFamilyRows, type PersistedFamilyRow } from "./persist/familyLog.j
 import { createFileLogger } from "./lib/logger.js";
 import { writeHeartbeat } from "./persist/heartbeat.js";
 import { runPaperTrade } from "./paper/engine.js";
+import { writeDashboard, type Dashboard } from "./persist/dashboard.js";
+import { fmtNum, fmtUsd, renderTable, truncate } from "./lib/pretty.js";
 
 async function main(): Promise<void> {
   const log = await createFileLogger();
@@ -74,68 +76,112 @@ async function main(): Promise<void> {
     topScore
   });
 
-  // Console summary: top 20
-  const top = ranked.filter((f) => f.family_type !== "single").slice(0, 20);
-  await log.info("");
-  await log.info("Scan complete (read-only)");
-  await log.info(`Families written: ${outPath}`);
-  await log.info("");
-  await log.info("Stats:");
-  await log.info(
-    `- gamma paging: GAMMA_LIMIT=${gammaLimit} GAMMA_PAGE_LIMIT=${gammaPageLimit ?? "unset"} MAX_MARKETS=${maxMarkets ?? "unset"}`
-  );
-  await log.info(`- gamma pagesFetched=${pagesFetched} stopReason=${stopReason}`);
-  await log.info(`- markets fetched (raw): ${rawCount}`);
-  await log.info(`- markets parsed (zod): ${marketsLoose.length}`);
-  await log.info(
-    `- markets normalized kept: ${normStats.keptMarkets} (with outcomes: ${normStats.marketsWithOutcomes}, with prices: ${normStats.marketsWithPrices})`
-  );
-  await log.info(`- families built: ${families.length}`);
-  await log.info(`- bucket families: ${bucketFamilies.length} (with ≥6 valid prices: ${bucketWith6Prices.length})`);
-  await log.info(`- persisted rows appended: ${rows.length}`);
-  await log.info(`- heartbeat: data/db/last_scan.json`);
-  await log.info("");
-  await log.info("Top 20 families:");
-  for (const f of top) {
-    if (f.family_type === "bucket") {
-      const over = f.features?.overround;
-      const spike = f.features?.maxSpike;
-      const cluster = f.features?.bestCluster;
-      const liq = f.features?.liquidityMax;
-      await log.info(`# score=${f.opportunity_score.toFixed(3)} | BUCKET | ${f.title}`);
-      await log.info(
-        `  outcomes: ${f.num_outcomes} | overround: ${over === null || over === undefined ? "n/a" : over.toFixed(3)} | maxSpike: ${spike === null || spike === undefined ? "n/a" : spike.toFixed(3)}`
-      );
-      if (liq !== null && liq !== undefined) await log.info(`  liquidityMax: ${liq.toFixed(0)}`);
-      if (cluster)
-        await log.info(
-          `  bestCluster: [${cluster.labels.join(", ")}] cost=${cluster.cost.toFixed(3)} ratio=${cluster.ratio.toFixed(3)} z=${cluster.z.toFixed(2)}`
-        );
-      if (f.reasons.length) await log.info(`  why: ${f.reasons.join("; ")}`);
-    } else {
-      await log.info(
-        `# score=${f.opportunity_score.toFixed(3)} | ${f.family_type.toUpperCase()} | outcomes=${f.num_outcomes} | ${f.title}`
-      );
-      if (f.reasons.length) await log.info(`  why: ${f.reasons.join("; ")}`);
-    }
-  }
-  await log.info("");
-  await log.info(`Raw markets: ${path.resolve(process.cwd(), "data/raw/markets_raw.json")}`);
-  await log.info(`Raw prices:  ${path.resolve(process.cwd(), "data/raw/prices_raw.json")}`);
-  await log.info("");
-  await log.flush();
+  const topRankedNonSingle = ranked.filter((f) => f.family_type !== "single").slice(0, 10);
+  const topFamilies = topRankedNonSingle.map((f) => ({
+    family_id: f.family_id,
+    family_type: f.family_type,
+    title: f.title,
+    opportunity_score: f.opportunity_score,
+    reasons: f.reasons,
+    ...(f.family_type === "bucket"
+      ? {
+          features: {
+            overround: f.features?.overround ?? null,
+            maxSpike: f.features?.maxSpike ?? null,
+            bestClusterZ: f.features?.bestClusterZ ?? null,
+            liquidityMax: f.features?.liquidityMax ?? null,
+            validPrices: f.features?.validPrices ?? null,
+            missingPrices: f.features?.missingPrices ?? null
+          }
+        }
+      : {})
+  }));
+
+  const dashboardBase: Dashboard = {
+    timestamp: ts,
+    scan: {
+      fetched: rawCount,
+      parsed: marketsLoose.length,
+      normalized: normStats.keptMarkets,
+      families: families.length,
+      bucketFamilies: bucketFamilies.length,
+      stopReason,
+      pagesFetched,
+      limits: {
+        GAMMA_LIMIT: gammaLimit,
+        GAMMA_PAGE_LIMIT: gammaPageLimit,
+        MAX_MARKETS: maxMarkets
+      }
+    },
+    topFamilies
+  };
+
+  let paperSummary: Dashboard["paper"] | undefined;
 
   // Optional paper trading step (must NOT fail the scan).
   if (process.env.PAPER_TRADE === "1") {
     try {
       const summary = await runPaperTrade();
-      await log.info(
-        `paper: positions=${summary.openPositions} exposure=$${summary.exposureUsd.toFixed(2)} cash=$${summary.bankrollCashUsd.toFixed(2)} realizedPnL=$${summary.realizedPnlUsd.toFixed(2)} unrealizedPnL=$${summary.unrealizedPnlUsd.toFixed(2)}`
-      );
+      paperSummary = {
+        bankrollCashUsd: summary.bankrollCashUsd,
+        realizedPnlUsd: summary.realizedPnlUsd,
+        unrealizedPnlUsd: summary.unrealizedPnlUsd,
+        openPositionsCount: summary.openPositions,
+        exposureUsd: summary.exposureUsd,
+        newTradesSummary: summary.newTradesSummary,
+        openPositionsSummary: summary.openPositionsSummary
+      };
     } catch (e: any) {
       await log.warn(`paper: error (continuing scan): ${e?.message ?? String(e)}`);
     }
   }
+
+  await writeDashboard({ ...dashboardBase, ...(paperSummary ? { paper: paperSummary } : {}) });
+
+  // Clean console/log summary (single block)
+  const summaryLines: string[] = [];
+  summaryLines.push("=== Vrtl_Trader Scan ===");
+  summaryLines.push(`ts: ${ts}`);
+  summaryLines.push(
+    `gamma: fetched=${rawCount} parsed=${marketsLoose.length} normalized=${normStats.keptMarkets} pages=${pagesFetched} stop=${stopReason}`
+  );
+  summaryLines.push(
+    `limits: GAMMA_LIMIT=${gammaLimit} GAMMA_PAGE_LIMIT=${gammaPageLimit ?? "unset"} MAX_MARKETS=${maxMarkets ?? "unset"}`
+  );
+  summaryLines.push(
+    `families=${families.length} buckets=${bucketFamilies.length} buckets(>=6 prices)=${bucketWith6Prices.length} topScore=${fmtNum(topScore, 3)}`
+  );
+  summaryLines.push(`outputs: data/out/families.json data/out/dashboard.json`);
+  summaryLines.push(`heartbeat: data/db/last_scan.json`);
+  if (paperSummary) {
+    summaryLines.push(
+      `paper: positions=${paperSummary.openPositionsCount} exposure=${fmtUsd(paperSummary.exposureUsd)} cash=${fmtUsd(
+        paperSummary.bankrollCashUsd
+      )} realized=${fmtUsd(paperSummary.realizedPnlUsd)} unrealized=${fmtUsd(paperSummary.unrealizedPnlUsd)}`
+    );
+  }
+  summaryLines.push("");
+  summaryLines.push("Top 10:");
+  const tableRows: string[][] = [
+    ["rank", "type", "score", "over", "spike", "z", "liq", "title"]
+  ];
+  for (let i = 0; i < topFamilies.length; i++) {
+    const f = topFamilies[i]!;
+    tableRows.push([
+      String(i + 1),
+      f.family_type,
+      fmtNum(f.opportunity_score, 3),
+      fmtNum(f.features?.overround ?? null, 3),
+      fmtNum(f.features?.maxSpike ?? null, 3),
+      fmtNum(f.features?.bestClusterZ ?? null, 2),
+      fmtNum(f.features?.liquidityMax ?? null, 0),
+      truncate(f.title, 60)
+    ]);
+  }
+  summaryLines.push(renderTable(tableRows));
+
+  await log.info(summaryLines.join("\n"));
+  await log.flush();
 }
 
 main().catch((err) => {
