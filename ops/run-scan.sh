@@ -23,6 +23,7 @@ LOG_FILE="${REPO_DIR}/logs/scan.log"
   MAX_MARKETS="${MAX_MARKETS:-2000}" \
   GAMMA_PAGE_LIMIT="${GAMMA_PAGE_LIMIT:-4}" \
   GAMMA_LIMIT="${GAMMA_LIMIT:-500}" \
+  PAPER_TRADE="${PAPER_TRADE:-1}" \
   npm run scan:once
   code=$?
   set -e

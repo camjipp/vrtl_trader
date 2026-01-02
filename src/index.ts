@@ -10,6 +10,7 @@ import { normalizeGammaMarkets } from "./normalize/normalizeMarkets.js";
 import { appendFamilyRows, type PersistedFamilyRow } from "./persist/familyLog.js";
 import { createFileLogger } from "./lib/logger.js";
 import { writeHeartbeat } from "./persist/heartbeat.js";
+import { runPaperTrade } from "./paper/engine.js";
 
 async function main(): Promise<void> {
   const log = await createFileLogger();
@@ -123,6 +124,18 @@ async function main(): Promise<void> {
   await log.info(`Raw prices:  ${path.resolve(process.cwd(), "data/raw/prices_raw.json")}`);
   await log.info("");
   await log.flush();
+
+  // Optional paper trading step (must NOT fail the scan).
+  if (process.env.PAPER_TRADE === "1") {
+    try {
+      const summary = await runPaperTrade();
+      await log.info(
+        `paper: positions=${summary.openPositions} exposure=$${summary.exposureUsd.toFixed(2)} cash=$${summary.bankrollCashUsd.toFixed(2)} realizedPnL=$${summary.realizedPnlUsd.toFixed(2)} unrealizedPnL=$${summary.unrealizedPnlUsd.toFixed(2)}`
+      );
+    } catch (e: any) {
+      await log.warn(`paper: error (continuing scan): ${e?.message ?? String(e)}`);
+    }
+  }
 }
 
 main().catch((err) => {

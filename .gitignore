@@ -7,6 +7,7 @@ data/normalized/*.json
 data/out/*.json
 data/db/*.jsonl
 data/db/last_scan.json
+data/db/paper_state.json
 
 # ops/runtime logs (always-on server)
 logs/*.log
