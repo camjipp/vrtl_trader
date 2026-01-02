@@ -42,7 +42,7 @@ chmod +x ops/*.sh
 
 ```bash
 cd ~/Vrtl_Trader
-npm run scan:once
+SCAN_MAX_PAGES=10 SCAN_LIMIT_PER_PAGE=200 npm run scan:once
 cat data/db/last_scan.json
 tail -n 50 logs/scan.log
 ```

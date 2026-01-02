@@ -18,7 +18,8 @@ LOG_FILE="${REPO_DIR}/logs/scan.log"
 {
   echo "$(date -Is) INFO run-scan.sh starting"
   set +e
-  npm run scan:once
+  # Keep memory bounded on small instances. Override via crontab if desired.
+  SCAN_MAX_PAGES="${SCAN_MAX_PAGES:-10}" SCAN_LIMIT_PER_PAGE="${SCAN_LIMIT_PER_PAGE:-200}" npm run scan:once
   code=$?
   set -e
   echo "$(date -Is) INFO run-scan.sh done (exit=${code})"
