@@ -76,8 +76,13 @@ async function main(): Promise<void> {
     topScore
   });
 
-  const topRankedNonSingle = ranked.filter((f) => f.family_type !== "single").slice(0, 10);
-  const topFamilies = topRankedNonSingle.map((f) => ({
+  // Dashboard top list: prefer bucket+multi, then backfill with singles so it's never blank.
+  const rankedBucketMulti = ranked.filter((f) => f.family_type === "bucket" || f.family_type === "multi");
+  const rankedSingles = ranked.filter((f) => f.family_type === "single");
+  const topPick = [...rankedBucketMulti.slice(0, 10)];
+  if (topPick.length < 10) topPick.push(...rankedSingles.slice(0, 10 - topPick.length));
+
+  const topFamilies = topPick.map((f) => ({
     family_id: f.family_id,
     family_type: f.family_type,
     title: f.title,
@@ -97,6 +102,19 @@ async function main(): Promise<void> {
       : {})
   }));
 
+  const familyTypeCounts = {
+    bucket: scored.filter((f) => f.family_type === "bucket").length,
+    multi: scored.filter((f) => f.family_type === "multi").length,
+    single: scored.filter((f) => f.family_type === "single").length
+  };
+
+  const warnings: string[] = [];
+  if (bucketFamilies.length > 0 && bucketWith6Prices.length === 0) {
+    warnings.push(
+      "No high quality bucket families in this scan window; consider increasing coverage or targeting categories."
+    );
+  }
+
   const dashboardBase: Dashboard = {
     timestamp: ts,
     scan: {
@@ -105,6 +123,8 @@ async function main(): Promise<void> {
       normalized: normStats.keptMarkets,
       families: families.length,
       bucketFamilies: bucketFamilies.length,
+      bucketFamiliesWith6ValidPrices: bucketWith6Prices.length,
+      familyTypeCounts,
       stopReason,
       pagesFetched,
       limits: {
@@ -113,6 +133,7 @@ async function main(): Promise<void> {
         MAX_MARKETS: maxMarkets
       }
     },
+    warnings,
     topFamilies
   };
 
@@ -151,6 +172,7 @@ async function main(): Promise<void> {
   summaryLines.push(
     `families=${families.length} buckets=${bucketFamilies.length} buckets(>=6 prices)=${bucketWith6Prices.length} topScore=${fmtNum(topScore, 3)}`
   );
+  if (warnings.length) summaryLines.push(`warning: ${warnings[0]}`);
   summaryLines.push(`outputs: data/out/families.json data/out/dashboard.json`);
   summaryLines.push(`heartbeat: data/db/last_scan.json`);
   if (paperSummary) {

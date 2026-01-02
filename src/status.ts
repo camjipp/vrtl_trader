@@ -33,6 +33,14 @@ async function main(): Promise<void> {
     console.log(
       `scan: fetched=${dashboard.scan.fetched} parsed=${dashboard.scan.parsed} normalized=${dashboard.scan.normalized} families=${dashboard.scan.families} bucketFamilies=${dashboard.scan.bucketFamilies} stopReason=${dashboard.scan.stopReason}`
     );
+    if (dashboard.scan.familyTypeCounts) {
+      console.log(
+        `counts: bucket=${dashboard.scan.familyTypeCounts.bucket} multi=${dashboard.scan.familyTypeCounts.multi} single=${dashboard.scan.familyTypeCounts.single} bucket(>=6 prices)=${dashboard.scan.bucketFamiliesWith6ValidPrices ?? "n/a"}`
+      );
+    }
+  }
+  if (Array.isArray(dashboard.warnings) && dashboard.warnings.length) {
+    console.log(`warning: ${dashboard.warnings[0]}`);
   }
 
   const top = Array.isArray(dashboard.topFamilies) ? dashboard.topFamilies.slice(0, 10) : [];

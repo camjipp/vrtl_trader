@@ -9,6 +9,12 @@ export type Dashboard = {
     normalized: number;
     families: number;
     bucketFamilies: number;
+    bucketFamiliesWith6ValidPrices: number;
+    familyTypeCounts: {
+      bucket: number;
+      multi: number;
+      single: number;
+    };
     stopReason: string;
     pagesFetched: number;
     limits: {
@@ -17,6 +23,7 @@ export type Dashboard = {
       MAX_MARKETS: number | null;
     };
   };
+  warnings: string[];
   topFamilies: Array<{
     family_id: string;
     family_type: "bucket" | "multi" | "single";
