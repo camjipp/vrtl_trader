@@ -1,0 +1,15 @@
+# Example cron entries for Ubuntu (Lightsail)
+#
+# Install:
+#   crontab -e
+# Paste the lines below.
+#
+# Logs:
+#   logs/scan.log (both wrapper + in-app logger)
+
+# Run scan every 15 minutes
+*/15 * * * * /bin/bash -lc "cd /path/to/Vrtl_Trader && ./ops/run-scan.sh"
+
+# Run report daily at 9pm (append output to its own log)
+0 21 * * * /bin/bash -lc "cd /path/to/Vrtl_Trader && npm run report:once >> logs/report.log 2>&1"
+

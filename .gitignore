@@ -1,0 +1,13 @@
+node_modules/
+dist/
+
+# local data snapshots / outputs
+data/raw/*.json
+data/normalized/*.json
+data/out/*.json
+data/db/*.jsonl
+
+# ops/runtime logs (always-on server)
+logs/*.log
+
+

@@ -1,0 +1,19 @@
+0 verbose cli /opt/homebrew/Cellar/node/23.7.0/bin/node /opt/homebrew/bin/npm
+1 info using npm@10.9.2
+2 info using node@v23.7.0
+3 silly config load:file:/opt/homebrew/lib/node_modules/npm/npmrc
+4 silly config load:file:/Users/cameronjipp/Vrtl_Trader/.npmrc
+5 silly config load:file:/Users/cameronjipp/.npmrc
+6 silly config load:file:/opt/homebrew/etc/npmrc
+7 verbose title npm install
+8 verbose argv "install" "--cache" "./.npm-cache" "--no-audit" "--no-fund"
+9 verbose logfile logs-max:10 dir:/Users/cameronjipp/Vrtl_Trader/.npm-cache/_logs/2025-12-31T22_48_11_828Z-
+10 verbose logfile /Users/cameronjipp/Vrtl_Trader/.npm-cache/_logs/2025-12-31T22_48_11_828Z-debug-0.log
+11 silly logfile done cleaning log files
+12 verbose cwd /Users/cameronjipp/Vrtl_Trader
+13 verbose os Darwin 24.6.0
+14 verbose node v23.7.0
+15 verbose npm  v10.9.2
+16 verbose exit 1
+17 verbose code 1
+18 error A complete log of this run can be found in: /Users/cameronjipp/Vrtl_Trader/.npm-cache/_logs/2025-12-31T22_48_11_828Z-debug-0.log
