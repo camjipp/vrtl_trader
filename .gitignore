@@ -6,8 +6,12 @@ data/raw/*.json
 data/normalized/*.json
 data/out/*.json
 data/db/*.jsonl
+data/db/last_scan.json
 
 # ops/runtime logs (always-on server)
 logs/*.log
+
+# local npm cache/temp (dev machine / sandbox)
+.npm-cache/
 
 
