@@ -15,7 +15,9 @@ async function main(): Promise<void> {
   const log = await createFileLogger();
   const client = new PolymarketGammaClient();
 
-  const { raw, marketsLoose, pagesFetched, limitPerPage, maxPages } = await fetchMarkets(client);
+  const { raw, marketsLoose, pagesFetched, gammaLimit, gammaPageLimit, maxMarkets, stopReason } = await fetchMarkets(
+    client
+  );
   const rawCount = raw.length;
   if (rawCount === 0 || marketsLoose.length === 0) {
     await log.error(`FATAL: zero markets fetched/parsed (raw=${rawCount}, parsed=${marketsLoose.length})`);
@@ -78,7 +80,10 @@ async function main(): Promise<void> {
   await log.info(`Families written: ${outPath}`);
   await log.info("");
   await log.info("Stats:");
-  await log.info(`- paging: limitPerPage=${limitPerPage} maxPages=${maxPages} pagesFetched=${pagesFetched}`);
+  await log.info(
+    `- gamma paging: GAMMA_LIMIT=${gammaLimit} GAMMA_PAGE_LIMIT=${gammaPageLimit ?? "unset"} MAX_MARKETS=${maxMarkets ?? "unset"}`
+  );
+  await log.info(`- gamma pagesFetched=${pagesFetched} stopReason=${stopReason}`);
   await log.info(`- markets fetched (raw): ${rawCount}`);
   await log.info(`- markets parsed (zod): ${marketsLoose.length}`);
   await log.info(
