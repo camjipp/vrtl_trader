@@ -20,6 +20,25 @@ export type PaperRunSummary = {
   entered: number;
   exited: number;
   marked: number;
+  newTradesSummary: Array<{
+    positionId: string;
+    family_id: string;
+    marketId: string;
+    outcome: string;
+    usd: number;
+    price: number;
+    reason: string;
+  }>;
+  openPositionsSummary: Array<{
+    positionId: string;
+    family_id: string;
+    marketId: string;
+    outcome: string;
+    entryTs: string;
+    entryPrice: number;
+    entryUsd: number;
+    lastMarkPrice: number | null;
+  }>;
 };
 
 export async function runPaperTrade(args: RunPaperTradeArgs = {}): Promise<PaperRunSummary> {
@@ -192,6 +211,29 @@ export async function runPaperTrade(args: RunPaperTradeArgs = {}): Promise<Paper
   const exposureUsdAfter = exposureUsd(state.positions);
   const unrealizedAfter = computeUnrealized(state.positions, pricesSnap);
 
+  const newTradesSummary = enteredEvents
+    .filter((e): e is Extract<PaperTradeEvent, { type: "ENTRY" }> => e.type === "ENTRY")
+    .map((e) => ({
+      positionId: e.positionId,
+      family_id: e.family_id,
+      marketId: e.marketId,
+      outcome: e.outcome,
+      usd: e.usd,
+      price: e.price,
+      reason: e.reason
+    }));
+
+  const openPositionsSummary = state.positions.map((p) => ({
+    positionId: p.id,
+    family_id: p.family_id,
+    marketId: p.marketId,
+    outcome: p.outcome,
+    entryTs: p.entryTs,
+    entryPrice: p.entryPrice,
+    entryUsd: p.entryUsd,
+    lastMarkPrice: typeof p.lastMarkPrice === "number" && Number.isFinite(p.lastMarkPrice) ? p.lastMarkPrice : null
+  }));
+
   return {
     ts,
     openPositions: state.positions.length,
@@ -201,7 +243,9 @@ export async function runPaperTrade(args: RunPaperTradeArgs = {}): Promise<Paper
     bankrollCashUsd: state.bankrollCashUsd,
     entered,
     exited,
-    marked
+    marked,
+    newTradesSummary,
+    openPositionsSummary
   };
 }
 
