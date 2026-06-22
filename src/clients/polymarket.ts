@@ -57,6 +57,10 @@ export const GammaMarketLooseZ = z
     outcomes: z.union([z.array(z.string()), z.string()]).optional(),
     outcomePrices: z.union([z.array(z.union([z.string(), z.number()])), z.string()]).optional(),
     outcome_prices: z.union([z.array(z.union([z.string(), z.number()])), z.string()]).optional(),
+    clobTokenIds: z.union([z.array(z.union([z.string(), z.number()])), z.string()]).optional(),
+    clob_token_ids: z.union([z.array(z.union([z.string(), z.number()])), z.string()]).optional(),
+    orderPriceMinTickSize: z.union([z.string(), z.number()]).optional(),
+    negRisk: z.boolean().optional(),
 
     // Many responses embed event metadata under `events: [{ id, title, ... }]`.
     events: z
@@ -119,5 +123,4 @@ function toQuery(params: Record<string, string | number | boolean | undefined>):
   const q = usp.toString();
   return q.length ? `?${q}` : "";
 }
-
 

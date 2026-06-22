@@ -3,6 +3,7 @@ import { writeJsonFile } from "./lib/fs.js";
 import { PolymarketGammaClient } from "./clients/polymarket.js";
 import { fetchMarkets } from "./ingest/fetchMarkets.js";
 import { fetchPrices } from "./ingest/fetchPrices.js";
+import { fetchOrderBooksForMarkets } from "./ingest/fetchOrderBooks.js";
 import { buildFamilies } from "./normalize/buildFamilies.js";
 import { scoreFamilies } from "./detect/basicAnomalies.js";
 import { rankFamilies } from "./score/rank.js";
@@ -11,7 +12,9 @@ import { appendFamilyRows, type PersistedFamilyRow } from "./persist/familyLog.j
 import { createFileLogger } from "./lib/logger.js";
 import { writeHeartbeat } from "./persist/heartbeat.js";
 import { runPaperTrade } from "./paper/engine.js";
+import { runPaperArbitrage } from "./paper/arb.js";
 import { writeDashboard, type Dashboard } from "./persist/dashboard.js";
+import { syncScanToSupabase } from "./persist/supabase.js";
 import { fmtNum, fmtUsd, renderTable, truncate } from "./lib/pretty.js";
 
 async function main(): Promise<void> {
@@ -138,6 +141,8 @@ async function main(): Promise<void> {
   };
 
   let paperSummary: Dashboard["paper"] | undefined;
+  let paperArbSummary: Dashboard["paperArb"] | undefined;
+  let paperArbRunSummary: Awaited<ReturnType<typeof runPaperArbitrage>> | undefined;
 
   // Optional paper trading step (must NOT fail the scan).
   if (process.env.PAPER_TRADE === "1") {
@@ -157,7 +162,46 @@ async function main(): Promise<void> {
     }
   }
 
-  await writeDashboard({ ...dashboardBase, ...(paperSummary ? { paper: paperSummary } : {}) });
+  // Optional executable-arbitrage paper trading step (read-only market data, local simulated fills).
+  if (process.env.PAPER_ARB === "1") {
+    try {
+      const books = await fetchOrderBooksForMarkets(normalized);
+      for (const w of books.warnings.slice(0, 3)) await log.warn(`paper-arb: ${w}`);
+      const summary = await runPaperArbitrage(books);
+      paperArbRunSummary = summary;
+      paperArbSummary = {
+        bankrollCashUsd: summary.bankrollCashUsd,
+        realizedPnlUsd: summary.realizedPnlUsd,
+        lockedProfitUsd: summary.lockedProfitUsd,
+        markToBidPnlUsd: summary.markToBidPnlUsd,
+        exposureUsd: summary.exposureUsd,
+        openPositionsCount: summary.openPositionsCount,
+        scannedMarkets: summary.scannedMarkets,
+        completeBooks: summary.completeBooks,
+        opportunities: summary.opportunities,
+        entered: summary.entered,
+        exited: summary.exited,
+        newTradesSummary: summary.newTradesSummary,
+        openPositionsSummary: summary.openPositionsSummary
+      };
+    } catch (e: any) {
+      await log.warn(`paper-arb: error (continuing scan): ${e?.message ?? String(e)}`);
+    }
+  }
+
+  const dashboard: Dashboard = {
+    ...dashboardBase,
+    ...(paperSummary ? { paper: paperSummary } : {}),
+    ...(paperArbSummary ? { paperArb: paperArbSummary } : {})
+  };
+
+  await writeDashboard(dashboard);
+
+  try {
+    await syncScanToSupabase({ dashboard, ...(paperArbRunSummary ? { paperArbSummary: paperArbRunSummary } : {}) });
+  } catch (e: any) {
+    await log.warn(`supabase: sync failed (continuing scan): ${e?.message ?? String(e)}`);
+  }
 
   // Clean console/log summary (single block)
   const summaryLines: string[] = [];
@@ -180,6 +224,15 @@ async function main(): Promise<void> {
       `paper: positions=${paperSummary.openPositionsCount} exposure=${fmtUsd(paperSummary.exposureUsd)} cash=${fmtUsd(
         paperSummary.bankrollCashUsd
       )} realized=${fmtUsd(paperSummary.realizedPnlUsd)} unrealized=${fmtUsd(paperSummary.unrealizedPnlUsd)}`
+    );
+  }
+  if (paperArbSummary) {
+    summaryLines.push(
+      `paper-arb: opps=${paperArbSummary.opportunities} entered=${paperArbSummary.entered} positions=${paperArbSummary.openPositionsCount} exposure=${fmtUsd(
+        paperArbSummary.exposureUsd
+      )} locked=${fmtUsd(paperArbSummary.lockedProfitUsd)} markPnL=${fmtUsd(
+        paperArbSummary.markToBidPnlUsd
+      )} realized=${fmtUsd(paperArbSummary.realizedPnlUsd)} cash=${fmtUsd(paperArbSummary.bankrollCashUsd)}`
     );
   }
   summaryLines.push("");
@@ -210,5 +263,3 @@ main().catch((err) => {
   console.error(err);
   process.exitCode = 1;
 });
-
-

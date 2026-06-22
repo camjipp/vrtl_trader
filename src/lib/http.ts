@@ -15,18 +15,19 @@ export class HttpError extends Error {
 
 export async function getJson<T = unknown>(
   url: string,
-  opts?: { timeoutMs?: number; headers?: Record<string, string> }
+  opts?: { timeoutMs?: number; headers?: Record<string, string>; method?: "GET" | "POST"; body?: string }
 ): Promise<T> {
   const controller = new AbortController();
   const timeoutMs = opts?.timeoutMs ?? 20_000;
   const t = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch(url, {
-      method: "GET",
+      method: opts?.method ?? "GET",
       headers: {
         accept: "application/json",
         ...(opts?.headers ?? {})
       },
+      ...(opts?.body !== undefined ? { body: opts.body } : {}),
       signal: controller.signal
     });
 
@@ -47,5 +48,4 @@ async function safeReadText(res: Response): Promise<string | undefined> {
     return undefined;
   }
 }
-
 

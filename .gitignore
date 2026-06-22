@@ -1,5 +1,8 @@
 node_modules/
 dist/
+.env
+.env.*
+!.env.example
 
 # local data snapshots / outputs
 data/raw/*.json
@@ -8,11 +11,10 @@ data/out/*.json
 data/db/*.jsonl
 data/db/last_scan.json
 data/db/paper_state.json
+data/db/paper_arb_state.json
 
 # ops/runtime logs (always-on server)
 logs/*.log
 
 # local npm cache/temp (dev machine / sandbox)
 .npm-cache/
-
-

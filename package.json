@@ -9,7 +9,9 @@
     "report": "node --import tsx src/report.ts",
     "report:once": "node --import tsx src/report.ts",
     "paper:once": "node --import tsx src/paper.ts",
+    "arb:report": "node --import tsx src/arbReport.ts",
     "status": "node --import tsx src/status.ts",
+    "dashboard": "node --import tsx src/ui/server.ts",
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "node --import tsx --test"
@@ -23,6 +25,5 @@
     "typescript": "^5.7.2"
   }
 }
-
 
 

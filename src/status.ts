@@ -90,6 +90,33 @@ async function main(): Promise<void> {
     }
   }
 
+  if (dashboard.paperArb) {
+    console.log("");
+    console.log("Paper arb:");
+    console.log(
+      `opps=${dashboard.paperArb.opportunities} entered=${dashboard.paperArb.entered} exited=${dashboard.paperArb.exited} positions=${dashboard.paperArb.openPositionsCount} exposure=${fmtUsd(dashboard.paperArb.exposureUsd)} cash=${fmtUsd(dashboard.paperArb.bankrollCashUsd)} locked=${fmtUsd(dashboard.paperArb.lockedProfitUsd)} markPnL=${fmtUsd(dashboard.paperArb.markToBidPnlUsd)} realized=${fmtUsd(dashboard.paperArb.realizedPnlUsd)}`
+    );
+
+    const open = Array.isArray(dashboard.paperArb.openPositionsSummary) ? dashboard.paperArb.openPositionsSummary : [];
+    if (open.length) {
+      console.log("");
+      console.log("Open arb positions:");
+      const pr: string[][] = [["id", "market", "shares", "cost", "locked", "markPnL", "title"]];
+      for (const p of open.slice(0, 25)) {
+        pr.push([
+          truncate(String(p.positionId ?? ""), 12),
+          truncate(String(p.marketId ?? ""), 10),
+          fmtNum(p.shares ?? null, 2),
+          fmtUsd(p.costUsd ?? null),
+          fmtUsd(p.lockedProfitUsd ?? null),
+          fmtUsd(p.lastMarkPnlUsd ?? null),
+          truncate(String(p.title ?? ""), 50)
+        ]);
+      }
+      console.log(renderTable(pr));
+    }
+  }
+
   console.log("");
 }
 
@@ -106,5 +133,4 @@ main().catch((err) => {
   console.error(err);
   process.exitCode = 1;
 });
-
 

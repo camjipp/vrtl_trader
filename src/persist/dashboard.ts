@@ -65,6 +65,38 @@ export type Dashboard = {
       lastMarkPrice: number | null;
     }>;
   };
+  paperArb?: {
+    bankrollCashUsd: number;
+    realizedPnlUsd: number;
+    lockedProfitUsd: number;
+    markToBidPnlUsd: number;
+    exposureUsd: number;
+    openPositionsCount: number;
+    scannedMarkets: number;
+    completeBooks: number;
+    opportunities: number;
+    entered: number;
+    exited: number;
+    newTradesSummary: Array<{
+      positionId: string;
+      marketId: string;
+      title: string;
+      shares: number;
+      costUsd: number;
+      lockedProfitUsd: number;
+      edge: number;
+    }>;
+    openPositionsSummary: Array<{
+      positionId: string;
+      marketId: string;
+      title: string;
+      entryTs: string;
+      shares: number;
+      costUsd: number;
+      lockedProfitUsd: number;
+      lastMarkPnlUsd: number | null;
+    }>;
+  };
 };
 
 export function defaultDashboardPath(): string {
@@ -74,5 +106,3 @@ export function defaultDashboardPath(): string {
 export async function writeDashboard(dashboard: Dashboard, filePath = defaultDashboardPath()): Promise<void> {
   await writeJsonFile(filePath, dashboard);
 }
-
-

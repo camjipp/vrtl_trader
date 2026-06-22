@@ -11,6 +11,21 @@ set -euo pipefail
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${REPO_DIR}"
 
+if [ -f "${REPO_DIR}/.env" ]; then
+  set -a
+  # shellcheck disable=SC1091
+  . "${REPO_DIR}/.env"
+  set +a
+fi
+
+# Cron does not load ~/.bashrc, so load nvm explicitly when present.
+export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+if [ -s "$NVM_DIR/nvm.sh" ]; then
+  # shellcheck disable=SC1090
+  . "$NVM_DIR/nvm.sh"
+  nvm use 20 >/dev/null
+fi
+
 mkdir -p logs data/raw data/out data/db
 
 # Wrapper log (do NOT write into logs/scan.log to avoid duplicating in-app logs).
@@ -25,10 +40,10 @@ LOG_FILE="${REPO_DIR}/logs/run-scan.log"
   GAMMA_PAGE_LIMIT="${GAMMA_PAGE_LIMIT:-4}" \
   GAMMA_LIMIT="${GAMMA_LIMIT:-500}" \
   PAPER_TRADE="${PAPER_TRADE:-1}" \
+  PAPER_ARB="${PAPER_ARB:-1}" \
   npm run scan:once
   code=$?
   set -e
   echo "$(date -Is) INFO run-scan.sh done (exit=${code})"
   exit "${code}"
 } >>"${LOG_FILE}" 2>&1
-

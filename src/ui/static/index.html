@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Vrtl Trader</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="mark">VT</div>
+          <div>
+            <h1>Vrtl Trader</h1>
+            <p>Paper arb console</p>
+          </div>
+        </div>
+        <nav>
+          <a href="#overview">Overview</a>
+          <a href="#positions">Positions</a>
+          <a href="#signals">Signals</a>
+          <a href="#markets">Markets</a>
+        </nav>
+        <div class="status-pill" id="dataStatus">Loading</div>
+      </aside>
+
+      <main>
+        <header class="topbar" id="overview">
+          <div>
+            <p class="eyebrow">Local read-only dashboard</p>
+            <h2>Paper Arbitrage Monitor</h2>
+          </div>
+          <div class="actions">
+            <button id="refreshBtn" title="Refresh dashboard data">Refresh</button>
+          </div>
+        </header>
+
+        <section class="metric-grid" aria-label="Paper arbitrage metrics">
+          <div class="metric">
+            <span>Cash</span>
+            <strong id="cash">$0.00</strong>
+            <small id="cashHint">paper bankroll</small>
+          </div>
+          <div class="metric">
+            <span>Exposure</span>
+            <strong id="exposure">$0.00</strong>
+            <small id="positionsHint">0 open positions</small>
+          </div>
+          <div class="metric">
+            <span>Locked Profit</span>
+            <strong id="locked">$0.00</strong>
+            <small>guaranteed if held to payout</small>
+          </div>
+          <div class="metric">
+            <span>Mark PnL</span>
+            <strong id="markPnl">$0.00</strong>
+            <small>exit now at current bids</small>
+          </div>
+          <div class="metric">
+            <span>Opportunities</span>
+            <strong id="opps">0</strong>
+            <small id="enteredHint">0 entered this scan</small>
+          </div>
+        </section>
+
+        <section class="band">
+          <div class="panel scan-panel">
+            <div class="panel-head">
+              <h3>Scan Health</h3>
+              <span id="scanTimestamp">No scan yet</span>
+            </div>
+            <div class="scan-grid">
+              <div><span>Fetched</span><strong id="fetched">0</strong></div>
+              <div><span>Normalized</span><strong id="normalized">0</strong></div>
+              <div><span>Families</span><strong id="families">0</strong></div>
+              <div><span>Books</span><strong id="books">0</strong></div>
+            </div>
+            <div class="bar-track"><div class="bar-fill" id="bookBar"></div></div>
+            <p class="quiet" id="scanNote">Waiting for scan output.</p>
+          </div>
+
+          <div class="panel report-panel">
+            <div class="panel-head">
+              <h3>Ledger Summary</h3>
+              <span id="reportTimestamp">No report</span>
+            </div>
+            <div class="ledger-list">
+              <div><span>Total entries</span><strong id="totalEntries">0</strong></div>
+              <div><span>Total exits</span><strong id="totalExits">0</strong></div>
+              <div><span>Avg edge</span><strong id="avgEdge">n/a</strong></div>
+              <div><span>Realized PnL</span><strong id="realized">$0.00</strong></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel table-panel" id="positions">
+          <div class="panel-head">
+            <h3>Open Arb Positions</h3>
+            <span id="positionCount">0 rows</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Market</th>
+                  <th>Shares</th>
+                  <th>Cost</th>
+                  <th>Locked</th>
+                  <th>Mark PnL</th>
+                </tr>
+              </thead>
+              <tbody id="positionsBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="band" id="signals">
+          <div class="panel table-panel">
+            <div class="panel-head">
+              <h3>Recent Entries</h3>
+              <span id="entryCount">0 rows</span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>Market</th>
+                    <th>Cost</th>
+                    <th>Locked</th>
+                    <th>Edge</th>
+                  </tr>
+                </thead>
+                <tbody id="entriesBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="panel table-panel" id="markets">
+            <div class="panel-head">
+              <h3>Top Families</h3>
+              <span id="familyCount">0 rows</span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Score</th>
+                    <th>Title</th>
+                  </tr>
+                </thead>
+                <tbody id="familiesBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

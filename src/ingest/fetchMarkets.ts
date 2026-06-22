@@ -31,6 +31,8 @@ export async function fetchMarkets(client: PolymarketGammaClient): Promise<Fetch
   const rawMarkets: unknown[] = [];
   let pagesFetched = 0;
   let stopReason = "unknown";
+  let offset = 0;
+  const seenPageFingerprints = new Set<string>();
 
   for (let page = 0; ; page++) {
     if (gammaPageLimit !== null && pagesFetched >= gammaPageLimit) {
@@ -42,11 +44,24 @@ export async function fetchMarkets(client: PolymarketGammaClient): Promise<Fetch
       break;
     }
 
-    const offset = page * gammaLimit;
     const pageRaw = await client.fetchMarketsRaw({ active: true, closed: false, limit: gammaLimit, offset });
     const arr = extractMarketsArray(pageRaw);
     pagesFetched += 1;
+
+    if (arr.length === 0) {
+      stopReason = "emptyPage";
+      break;
+    }
+
+    const fp = pageFingerprint(arr);
+    if (fp && seenPageFingerprints.has(fp)) {
+      stopReason = "duplicatePage";
+      break;
+    }
+    if (fp) seenPageFingerprints.add(fp);
+
     rawMarkets.push(...arr);
+    offset += arr.length;
 
     if (maxMarkets !== null && rawMarkets.length > maxMarkets) {
       rawMarkets.length = maxMarkets;
@@ -54,7 +69,7 @@ export async function fetchMarkets(client: PolymarketGammaClient): Promise<Fetch
       break;
     }
 
-    if (arr.length < gammaLimit) {
+    if (arr.length < gammaLimit && gammaPageLimit === null && maxMarkets === null) {
       stopReason = `shortPage(len=${arr.length})`;
       break;
     }
@@ -78,6 +93,22 @@ export async function fetchMarkets(client: PolymarketGammaClient): Promise<Fetch
   };
 }
 
+function pageFingerprint(arr: unknown[]): string | null {
+  if (arr.length === 0) return null;
+  const first = objectId(arr[0]);
+  const last = objectId(arr[arr.length - 1]);
+  return `${first ?? "?"}:${last ?? "?"}:${arr.length}`;
+}
+
+function objectId(v: unknown): string | undefined {
+  if (!v || typeof v !== "object") return undefined;
+  const obj = v as Record<string, unknown>;
+  const id = obj.id ?? obj.market_id ?? obj.conditionId ?? obj.condition_id;
+  if (typeof id === "string" && id.trim()) return id.trim();
+  if (typeof id === "number" && Number.isFinite(id)) return String(id);
+  return undefined;
+}
+
 function envIntOr(name: string, fallback: number, bounds?: { min?: number; max?: number }): number {
   const raw = process.env[name];
   if (!raw) return fallback;
@@ -99,5 +130,4 @@ function envIntOpt(name: string, bounds?: { min?: number; max?: number }): numbe
   if (bounds?.max !== undefined && i > bounds.max) return bounds.max;
   return i;
 }
-
 
