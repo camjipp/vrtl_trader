@@ -83,6 +83,25 @@ BOT_WORKER_ID=lightsail-vrtl-1
 
 Do not put the service-role key in Vercel client code or commit it to git.
 
+### Vercel command console
+
+The Vercel UI is read-only. It calls a serverless API route in `api/dashboard.js`,
+which reads Supabase using Vercel server-side environment variables. The browser
+never receives the service-role key.
+
+Vercel environment variables:
+
+```bash
+SUPABASE_URL=https://llsiphmlwqrxhaxgziid.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=<server-side key only>
+```
+
+Deploy shape:
+
+- `public/` serves the command-console UI.
+- `api/dashboard.js` reads Supabase.
+- `vercel.json` disables caching for API responses.
+
 ### Notes
 - This is **not** a trading bot. No orders are placed.
 - API shapes can evolve; the ingestion step stores raw JSON so we can adapt normalization safely.

@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>VRTL Trader Command</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="scanline"></div>
+    <div class="app-shell">
+      <aside class="rail">
+        <div class="identity">
+          <div class="sigil">VT</div>
+          <div>
+            <h1>VRTL Trader</h1>
+            <p>Command Console</p>
+          </div>
+        </div>
+
+        <div class="system-state">
+          <span class="pulse"></span>
+          <strong id="workerState">SYNCING</strong>
+          <small id="workerSub">waiting for telemetry</small>
+        </div>
+
+        <nav>
+          <a href="#overview">Overview</a>
+          <a href="#market">Market Structure</a>
+          <a href="#positions">Positions</a>
+          <a href="#feed">Event Feed</a>
+        </nav>
+
+        <div class="rail-footer">
+          <span>Worker</span>
+          <strong id="workerId">lightsail-vrtl-1</strong>
+        </div>
+      </aside>
+
+      <main>
+        <header class="hero" id="overview">
+          <div>
+            <p class="eyebrow">Polymarket Paper Arb</p>
+            <h2>Autonomous Market Monitor</h2>
+            <p class="hero-copy">
+              Lightsail executes the scan loop. Supabase stores memory. This console watches the signal.
+            </p>
+          </div>
+          <div class="hero-actions">
+            <button id="refreshBtn">Refresh Telemetry</button>
+            <div class="timestamp" id="updatedAt">--</div>
+          </div>
+        </header>
+
+        <section class="metrics">
+          <article class="metric primary">
+            <span>Paper Cash</span>
+            <strong id="cash">$0.00</strong>
+            <small>available bankroll</small>
+          </article>
+          <article class="metric">
+            <span>Exposure</span>
+            <strong id="exposure">$0.00</strong>
+            <small id="openPositions">0 open positions</small>
+          </article>
+          <article class="metric">
+            <span>Locked Profit</span>
+            <strong id="locked">$0.00</strong>
+            <small>held-to-payout edge</small>
+          </article>
+          <article class="metric">
+            <span>Mark PnL</span>
+            <strong id="markPnl">$0.00</strong>
+            <small>bid-exit value</small>
+          </article>
+          <article class="metric">
+            <span>Arb Hits</span>
+            <strong id="opps">0</strong>
+            <small id="entered">0 entries this scan</small>
+          </article>
+        </section>
+
+        <section class="console-grid">
+          <article class="panel tactical">
+            <div class="panel-head">
+              <h3>Scan Core</h3>
+              <span id="scanAge">--</span>
+            </div>
+            <div class="radar-wrap">
+              <div class="radar">
+                <div class="ring ring-a"></div>
+                <div class="ring ring-b"></div>
+                <div class="sweep"></div>
+                <div class="radar-readout">
+                  <strong id="topScore">0.000</strong>
+                  <span>top score</span>
+                </div>
+              </div>
+              <div class="scan-stats">
+                <div><span>Fetched</span><strong id="fetched">0</strong></div>
+                <div><span>Families</span><strong id="families">0</strong></div>
+                <div><span>Buckets</span><strong id="buckets">0</strong></div>
+                <div><span>Stop</span><strong id="stopReason">--</strong></div>
+              </div>
+            </div>
+          </article>
+
+          <article class="panel" id="market">
+            <div class="panel-head">
+              <h3>Recent Scan Pulse</h3>
+              <span>last 48 samples</span>
+            </div>
+            <div class="spark" id="spark"></div>
+            <div class="legend">
+              <span><i class="cyan"></i> top score</span>
+              <span><i class="amber"></i> bucket families</span>
+            </div>
+          </article>
+        </section>
+
+        <section class="panel table-panel" id="positions">
+          <div class="panel-head">
+            <h3>Open Paper Positions</h3>
+            <span id="positionCount">0 rows</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Market</th>
+                  <th>Status</th>
+                  <th>Shares</th>
+                  <th>Cost</th>
+                  <th>Locked</th>
+                  <th>Mark PnL</th>
+                </tr>
+              </thead>
+              <tbody id="positionsBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="console-grid" id="feed">
+          <article class="panel table-panel">
+            <div class="panel-head">
+              <h3>Recent Trade Events</h3>
+              <span id="tradeCount">0 rows</span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>Type</th>
+                    <th>Market</th>
+                    <th>Cost</th>
+                    <th>PnL</th>
+                  </tr>
+                </thead>
+                <tbody id="tradesBody"></tbody>
+              </table>
+            </div>
+          </article>
+
+          <article class="panel table-panel">
+            <div class="panel-head">
+              <h3>Latest Opportunities</h3>
+              <span id="opportunityCount">0 rows</span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>Market</th>
+                    <th>Edge</th>
+                    <th>Locked</th>
+                  </tr>
+                </thead>
+                <tbody id="opportunitiesBody"></tbody>
+              </table>
+            </div>
+          </article>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
