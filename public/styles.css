@@ -225,6 +225,19 @@ h2 {
   font-size: 14px;
 }
 
+.build-tag {
+  display: inline-flex;
+  margin-left: 8px;
+  padding: 2px 7px;
+  border: 1px solid rgba(255, 191, 77, 0.44);
+  border-radius: 999px;
+  color: var(--amber);
+  background: rgba(255, 191, 77, 0.08);
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
 .hero-actions {
   display: grid;
   justify-items: end;
