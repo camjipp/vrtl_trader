@@ -147,14 +147,43 @@ function renderOpportunities(rows) {
   renderRows(
     els.opportunitiesBody,
     rows,
-    (o) => `
-      <td>${escapeHtml(formatTime(o.ts))}</td>
-      <td><span class="pill">${escapeHtml(o.strategy ?? "signal")}</span><br>${escapeHtml(o.title ?? o.market_id ?? "")}</td>
-      <td>${o.edge == null ? "n/a" : `${num(Number(o.edge) * 100, 2)}%`}</td>
-      <td class="${classFor(o.locked_profit_usd)}">${usd(o.locked_profit_usd)}</td>
-    `,
-    4
+    (o) => {
+      const payload = o.payload ?? {};
+      const detail = payload.reason ?? signalDetail(o);
+      const label = signalLabel(o.strategy ?? payload.kind ?? "signal");
+      return `
+        <td>${escapeHtml(formatTime(o.ts))}</td>
+        <td><span class="pill ${signalClass(o.strategy)}">${escapeHtml(label)}</span></td>
+        <td>
+          <strong>${escapeHtml(o.title ?? payload.title ?? o.market_id ?? "")}</strong>
+          <small>${escapeHtml(payload.sport ?? o.venue ?? "polymarket")}</small>
+        </td>
+        <td>${o.edge == null ? "n/a" : `${num(Number(o.edge) * 100, 2)}%`}</td>
+        <td>${escapeHtml(detail)}</td>
+      `;
+    },
+    5
   );
+}
+
+function signalLabel(strategy) {
+  return String(strategy)
+    .replace(/^sports_/, "")
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function signalClass(strategy) {
+  const s = String(strategy ?? "");
+  if (s.includes("violation") || s.includes("underround")) return "hot";
+  if (s.includes("near")) return "watch";
+  return "";
+}
+
+function signalDetail(o) {
+  if (o.locked_profit_usd != null) return `Potential locked value ${usd(o.locked_profit_usd)}`;
+  if (o.cost_usd != null) return `Basket cost ${usd(o.cost_usd)}`;
+  return "Structural watch signal";
 }
 
 function renderRows(tbody, rows, render, colspan) {
