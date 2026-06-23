@@ -8,6 +8,7 @@
   </head>
   <body>
     <div class="scanline"></div>
+    <div class="orbital-glow"></div>
     <div class="app-shell">
       <aside class="rail">
         <div class="identity">
@@ -41,10 +42,10 @@
         <header class="hero" id="overview">
           <div>
             <p class="eyebrow">Polymarket Paper Arb</p>
-            <h2>Autonomous Market Monitor</h2>
+            <h2>VRTL Command Core</h2>
             <p class="hero-copy">
-              Lightsail executes the scan loop. Supabase stores memory. This console watches the signal.
-              <span class="build-tag">sports-signal build</span>
+              Autonomous scan telemetry, paper execution memory, and sports-market signal intelligence.
+              <span class="build-tag">sports signal matrix</span>
             </p>
           </div>
           <div class="hero-actions">
@@ -81,20 +82,18 @@
           </article>
         </section>
 
-        <section class="console-grid">
+        <section class="command-grid">
           <article class="panel tactical">
             <div class="panel-head">
-              <h3>Scan Core</h3>
+              <h3>Core Telemetry</h3>
               <span id="scanAge">--</span>
             </div>
-            <div class="radar-wrap">
-              <div class="radar">
-                <div class="ring ring-a"></div>
-                <div class="ring ring-b"></div>
-                <div class="sweep"></div>
-                <div class="radar-readout">
-                  <strong id="topScore">0.000</strong>
+            <div class="core-layout">
+              <div class="reactor">
+                <canvas id="coreCanvas" width="320" height="320"></canvas>
+                <div class="reactor-readout">
                   <span>top score</span>
+                  <strong id="topScore">0.000</strong>
                 </div>
               </div>
               <div class="scan-stats">
@@ -106,12 +105,12 @@
             </div>
           </article>
 
-          <article class="panel" id="market">
+          <article class="panel chart-panel" id="market">
             <div class="panel-head">
               <h3>Recent Scan Pulse</h3>
               <span>last 48 samples</span>
             </div>
-            <div class="spark" id="spark"></div>
+            <canvas id="scanChart" class="chart-canvas" width="900" height="360"></canvas>
             <div class="legend">
               <span><i class="cyan"></i> top score</span>
               <span><i class="amber"></i> bucket families</span>
@@ -119,29 +118,37 @@
           </article>
         </section>
 
-        <section class="panel table-panel" id="positions">
+        <section class="panel signal-panel" id="feed">
           <div class="panel-head">
-            <h3>Open Paper Positions</h3>
-            <span id="positionCount">0 rows</span>
+            <h3>Sports Signal Matrix</h3>
+            <span id="opportunityCount">0 rows</span>
           </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Market</th>
-                  <th>Status</th>
-                  <th>Shares</th>
-                  <th>Cost</th>
-                  <th>Locked</th>
-                  <th>Mark PnL</th>
-                </tr>
-              </thead>
-              <tbody id="positionsBody"></tbody>
-            </table>
-          </div>
+          <div class="signal-grid" id="opportunitiesBody"></div>
         </section>
 
-        <section class="console-grid" id="feed">
+        <section class="console-grid">
+          <article class="panel table-panel" id="positions">
+            <div class="panel-head">
+              <h3>Open Paper Positions</h3>
+              <span id="positionCount">0 rows</span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Market</th>
+                    <th>Status</th>
+                    <th>Shares</th>
+                    <th>Cost</th>
+                    <th>Locked</th>
+                    <th>Mark PnL</th>
+                  </tr>
+                </thead>
+                <tbody id="positionsBody"></tbody>
+              </table>
+            </div>
+          </article>
+
           <article class="panel table-panel">
             <div class="panel-head">
               <h3>Recent Trade Events</h3>
@@ -159,27 +166,6 @@
                   </tr>
                 </thead>
                 <tbody id="tradesBody"></tbody>
-              </table>
-            </div>
-          </article>
-
-          <article class="panel table-panel">
-            <div class="panel-head">
-              <h3>Sports Signal Matrix</h3>
-              <span id="opportunityCount">0 rows</span>
-            </div>
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Time</th>
-                    <th>Type</th>
-                    <th>Signal</th>
-                    <th>Edge</th>
-                    <th>Detail</th>
-                  </tr>
-                </thead>
-                <tbody id="opportunitiesBody"></tbody>
               </table>
             </div>
           </article>

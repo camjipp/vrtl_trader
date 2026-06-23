@@ -17,7 +17,8 @@ const els = {
   families: byId("families"),
   buckets: byId("buckets"),
   stopReason: byId("stopReason"),
-  spark: byId("spark"),
+  coreCanvas: byId("coreCanvas"),
+  scanChart: byId("scanChart"),
   positionCount: byId("positionCount"),
   positionsBody: byId("positionsBody"),
   tradeCount: byId("tradeCount"),
@@ -26,12 +27,22 @@ const els = {
   opportunitiesBody: byId("opportunitiesBody")
 };
 
+let lastData = null;
+
 els.refreshBtn.addEventListener("click", () => {
   void load();
 });
 
+window.addEventListener("resize", () => {
+  if (lastData) render(lastData);
+});
+
 void load();
 setInterval(() => void load(), 60_000);
+setInterval(() => {
+  const scan = lastData?.latestScan;
+  if (scan) drawCore(Number(scan.top_score ?? 0), scan.paper_arb ?? {});
+}, 140);
 
 async function load() {
   els.workerState.textContent = "SYNCING";
@@ -54,6 +65,7 @@ async function getJson(url) {
 }
 
 function render(data) {
+  lastData = data;
   const scan = data.latestScan;
   const arb = scan?.paper_arb ?? {};
   const heartbeat = data.heartbeats?.[0] ?? null;
@@ -82,31 +94,153 @@ function render(data) {
   els.fetched.textContent = int(scan?.fetched);
   els.families.textContent = int(scan?.families);
   els.buckets.textContent = int(scan?.bucket_families);
-  els.stopReason.textContent = scan?.stop_reason ?? "--";
+  els.stopReason.textContent = formatStopReason(scan?.stop_reason);
 
-  renderSpark(data.recentScans ?? []);
+  drawCore(Number(scan?.top_score ?? 0), arb);
+  drawScanChart(data.recentScans ?? []);
   renderPositions(data.positions ?? []);
   renderTrades(data.trades ?? []);
-  renderOpportunities(data.opportunities ?? []);
+  renderSignalCards(data.opportunities ?? []);
 }
 
-function renderSpark(scans) {
+function drawCore(score, arb) {
+  const canvas = els.coreCanvas;
+  const setup = setupCanvas(canvas);
+  if (!setup) return;
+  const { ctx, w, h } = setup;
+  const cx = w / 2;
+  const cy = h / 2;
+  const radius = Math.min(w, h) * 0.42;
+  const clampedScore = clamp(score, 0, 1);
+  const exposure = clamp(Number(arb.exposureUsd ?? 0) / 500, 0, 1);
+
+  ctx.clearRect(0, 0, w, h);
+  ctx.lineCap = "round";
+
+  for (let i = 1; i <= 4; i += 1) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, (radius / 4) * i, 0, Math.PI * 2);
+    ctx.strokeStyle = i === 4 ? "rgba(85,221,255,0.48)" : "rgba(85,221,255,0.16)";
+    ctx.lineWidth = i === 4 ? 1.5 : 1;
+    ctx.stroke();
+  }
+
+  for (let i = 0; i < 12; i += 1) {
+    const angle = (Math.PI * 2 * i) / 12;
+    const inner = radius * 0.18;
+    const outer = radius;
+    ctx.beginPath();
+    ctx.moveTo(cx + Math.cos(angle) * inner, cy + Math.sin(angle) * inner);
+    ctx.lineTo(cx + Math.cos(angle) * outer, cy + Math.sin(angle) * outer);
+    ctx.strokeStyle = i % 3 === 0 ? "rgba(85,221,255,0.2)" : "rgba(85,221,255,0.08)";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  drawArc(ctx, cx, cy, radius * 0.88, clampedScore, "#55ddff", 10);
+  drawArc(ctx, cx, cy, radius * 0.66, exposure, "#ffbf4d", 5);
+
+  const sweep = ((Date.now() / 4000) % 1) * Math.PI * 2 - Math.PI / 2;
+  const gradient = ctx.createLinearGradient(cx, cy, cx + Math.cos(sweep) * radius, cy + Math.sin(sweep) * radius);
+  gradient.addColorStop(0, "rgba(85,221,255,0.8)");
+  gradient.addColorStop(1, "rgba(85,221,255,0)");
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(cx + Math.cos(sweep) * radius, cy + Math.sin(sweep) * radius);
+  ctx.strokeStyle = gradient;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+}
+
+function drawArc(ctx, cx, cy, radius, amount, color, width) {
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, -Math.PI / 2, Math.PI * 2 * amount - Math.PI / 2);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width;
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 12;
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+}
+
+function drawScanChart(scans) {
+  const canvas = els.scanChart;
+  const setup = setupCanvas(canvas);
+  if (!setup) return;
+  const { ctx, w, h } = setup;
   const rows = scans.slice().reverse();
-  if (rows.length === 0) {
-    els.spark.innerHTML = `<div class="empty">No scan history yet</div>`;
+  const pad = { top: 22, right: 22, bottom: 30, left: 42 };
+  const plotW = Math.max(1, w - pad.left - pad.right);
+  const plotH = Math.max(1, h - pad.top - pad.bottom);
+
+  ctx.clearRect(0, 0, w, h);
+  ctx.font = "12px ui-sans-serif, system-ui, sans-serif";
+  ctx.lineWidth = 1;
+
+  if (!rows.length) {
+    ctx.fillStyle = "rgba(131,166,178,0.9)";
+    ctx.textAlign = "center";
+    ctx.fillText("No scan history yet", w / 2, h / 2);
     return;
   }
 
-  const maxScore = Math.max(0.001, ...rows.map((s) => Number(s.top_score ?? 0)));
-  els.spark.innerHTML = rows
-    .map((scan) => {
-      const score = Number(scan.top_score ?? 0);
-      const buckets = Number(scan.bucket_families ?? 0);
-      const height = Math.max(4, Math.round((score / maxScore) * 100));
-      const tint = buckets > 0 ? "var(--amber)" : "var(--cyan)";
-      return `<div class="bar" title="${escapeHtml(formatTime(scan.ts))} score ${num(score, 3)}" style="height:${height}%;background:${tint}"></div>`;
-    })
-    .join("");
+  for (let i = 0; i <= 4; i += 1) {
+    const y = pad.top + (plotH / 4) * i;
+    ctx.beginPath();
+    ctx.moveTo(pad.left, y);
+    ctx.lineTo(w - pad.right, y);
+    ctx.strokeStyle = "rgba(255,255,255,0.075)";
+    ctx.stroke();
+  }
+
+  const maxScore = Math.max(0.1, ...rows.map((s) => Number(s.top_score ?? 0)));
+  const maxBuckets = Math.max(1, ...rows.map((s) => Number(s.bucket_families ?? 0)));
+  const step = rows.length > 1 ? plotW / (rows.length - 1) : plotW;
+  const barW = Math.max(3, Math.min(14, plotW / rows.length / 2));
+
+  rows.forEach((scan, index) => {
+    const buckets = Number(scan.bucket_families ?? 0);
+    const x = pad.left + index * step;
+    const barH = (buckets / maxBuckets) * plotH;
+    ctx.fillStyle = "rgba(255,191,77,0.78)";
+    ctx.shadowColor = "rgba(255,191,77,0.25)";
+    ctx.shadowBlur = 8;
+    ctx.fillRect(x - barW / 2, pad.top + plotH - barH, barW, barH);
+  });
+
+  ctx.shadowBlur = 0;
+  ctx.beginPath();
+  rows.forEach((scan, index) => {
+    const score = Number(scan.top_score ?? 0);
+    const x = pad.left + index * step;
+    const y = pad.top + plotH - (score / maxScore) * plotH;
+    if (index === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.strokeStyle = "#55ddff";
+  ctx.lineWidth = 2.5;
+  ctx.shadowColor = "rgba(85,221,255,0.32)";
+  ctx.shadowBlur = 10;
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  const latest = rows.at(-1);
+  ctx.fillStyle = "rgba(131,166,178,0.92)";
+  ctx.textAlign = "left";
+  ctx.fillText(`latest ${num(latest?.top_score, 3)}`, pad.left, h - 10);
+  ctx.textAlign = "right";
+  ctx.fillText(`${int(latest?.bucket_families)} buckets`, w - pad.right, h - 10);
+}
+
+function setupCanvas(canvas) {
+  if (!canvas) return null;
+  const rect = canvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.max(1, Math.floor(rect.width * dpr));
+  canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { ctx, w: rect.width, h: rect.height };
 }
 
 function renderPositions(rows) {
@@ -142,28 +276,39 @@ function renderTrades(rows) {
   );
 }
 
-function renderOpportunities(rows) {
+function renderSignalCards(rows) {
   els.opportunityCount.textContent = `${rows.length} rows`;
-  renderRows(
-    els.opportunitiesBody,
-    rows,
-    (o) => {
+  if (!rows.length) {
+    els.opportunitiesBody.innerHTML = `<div class="empty signal-empty">No sports signals detected</div>`;
+    return;
+  }
+
+  els.opportunitiesBody.innerHTML = rows
+    .slice(0, 8)
+    .map((o) => {
       const payload = o.payload ?? {};
       const detail = payload.reason ?? signalDetail(o);
       const label = signalLabel(o.strategy ?? payload.kind ?? "signal");
+      const hot = signalClass(o.strategy) === "hot";
       return `
-        <td>${escapeHtml(formatTime(o.ts))}</td>
-        <td><span class="pill ${signalClass(o.strategy)}">${escapeHtml(label)}</span></td>
-        <td>
-          <strong>${escapeHtml(o.title ?? payload.title ?? o.market_id ?? "")}</strong>
-          <small>${escapeHtml(payload.sport ?? o.venue ?? "polymarket")}</small>
-        </td>
-        <td>${o.edge == null ? "n/a" : `${num(Number(o.edge) * 100, 2)}%`}</td>
-        <td>${escapeHtml(detail)}</td>
+        <article class="signal-card ${hot ? "hot-card" : ""}">
+          <div>
+            <header>
+              <span class="pill ${signalClass(o.strategy)}">${escapeHtml(label)}</span>
+              <strong class="signal-edge">${o.edge == null ? "watch" : `${num(Number(o.edge) * 100, 2)}%`}</strong>
+            </header>
+            <strong class="signal-title">${escapeHtml(o.title ?? payload.title ?? o.market_id ?? "")}</strong>
+          </div>
+          <p class="signal-detail">${escapeHtml(detail)}</p>
+          <div class="signal-meta">
+            <span>${escapeHtml(formatTime(o.ts))}</span>
+            <span>${escapeHtml(payload.sport ?? o.venue ?? "polymarket")}</span>
+            <span>${o.cost_usd == null ? "cost n/a" : usd(o.cost_usd)}</span>
+          </div>
+        </article>
       `;
-    },
-    5
-  );
+    })
+    .join("");
 }
 
 function signalLabel(strategy) {
@@ -220,6 +365,14 @@ function formatTime(value) {
   return new Date(ms).toLocaleString();
 }
 
+function formatStopReason(value) {
+  const text = String(value ?? "");
+  const pageLimit = text.match(/^pageLimitReached\((\d+)\)$/);
+  if (pageLimit) return `Page limit ${pageLimit[1]}`;
+  if (!text) return "--";
+  return text.replace(/([a-z])([A-Z])/g, "$1 $2");
+}
+
 function classFor(value) {
   const n = Number(value);
   if (!Number.isFinite(n) || n === 0) return "";
@@ -230,6 +383,12 @@ function color(el, value) {
   el.classList.remove("positive", "negative");
   const cls = classFor(value);
   if (cls) el.classList.add(cls);
+}
+
+function clamp(value, min, max) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return min;
+  return Math.max(min, Math.min(max, n));
 }
 
 function escapeHtml(value) {
