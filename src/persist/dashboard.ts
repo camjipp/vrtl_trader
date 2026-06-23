@@ -39,6 +39,24 @@ export type Dashboard = {
       missingPrices: number | null;
     };
   }>;
+  sportsSignals?: Array<{
+    ts: string;
+    kind: string;
+    sport: string;
+    groupKey: string;
+    title: string;
+    score: number;
+    edge: number;
+    cost?: number;
+    payout?: number;
+    reason: string;
+    markets: Array<{
+      marketId: string;
+      title: string;
+      yes_price: number | null;
+      yesTokenId?: string;
+    }>;
+  }>;
   paper?: {
     bankrollCashUsd: number;
     realizedPnlUsd: number;

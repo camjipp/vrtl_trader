@@ -149,7 +149,7 @@ function renderOpportunities(rows) {
     rows,
     (o) => `
       <td>${escapeHtml(formatTime(o.ts))}</td>
-      <td>${escapeHtml(o.title ?? o.market_id ?? "")}</td>
+      <td><span class="pill">${escapeHtml(o.strategy ?? "signal")}</span><br>${escapeHtml(o.title ?? o.market_id ?? "")}</td>
       <td>${o.edge == null ? "n/a" : `${num(Number(o.edge) * 100, 2)}%`}</td>
       <td class="${classFor(o.locked_profit_usd)}">${usd(o.locked_profit_usd)}</td>
     `,

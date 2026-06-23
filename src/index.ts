@@ -6,6 +6,7 @@ import { fetchPrices } from "./ingest/fetchPrices.js";
 import { fetchOrderBooksForMarkets } from "./ingest/fetchOrderBooks.js";
 import { buildFamilies } from "./normalize/buildFamilies.js";
 import { scoreFamilies } from "./detect/basicAnomalies.js";
+import { detectSportsSignals } from "./detect/sportsSignals.js";
 import { rankFamilies } from "./score/rank.js";
 import { normalizeGammaMarkets } from "./normalize/normalizeMarkets.js";
 import { appendFamilyRows, type PersistedFamilyRow } from "./persist/familyLog.js";
@@ -45,6 +46,7 @@ async function main(): Promise<void> {
 
   // Persist one row per family per scan (local, read-only evaluation log).
   const ts = new Date().toISOString();
+  const sportsSignals = detectSportsSignals(normalized, ts);
   const rows: PersistedFamilyRow[] = scored.map((f) => ({
     ts,
     family_id: f.family_id,
@@ -137,7 +139,8 @@ async function main(): Promise<void> {
       }
     },
     warnings,
-    topFamilies
+    topFamilies,
+    sportsSignals
   };
 
   let paperSummary: Dashboard["paper"] | undefined;
@@ -217,6 +220,7 @@ async function main(): Promise<void> {
     `families=${families.length} buckets=${bucketFamilies.length} buckets(>=6 prices)=${bucketWith6Prices.length} topScore=${fmtNum(topScore, 3)}`
   );
   if (warnings.length) summaryLines.push(`warning: ${warnings[0]}`);
+  if (sportsSignals.length) summaryLines.push(`sportsSignals=${sportsSignals.length} top=${truncate(sportsSignals[0]!.title, 60)}`);
   summaryLines.push(`outputs: data/out/families.json data/out/dashboard.json`);
   summaryLines.push(`heartbeat: data/db/last_scan.json`);
   if (paperSummary) {

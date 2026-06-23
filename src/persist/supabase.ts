@@ -53,6 +53,24 @@ export async function syncScanToSupabase(payload: SupabaseScanPayload): Promise<
     await syncPaperArb(cfg, paperArbSummary);
   }
 
+  if (dashboard.sportsSignals?.length) {
+    await insertRows(
+      cfg,
+      "arb_opportunities",
+      dashboard.sportsSignals.slice(0, 50).map((s) => ({
+        ts: s.ts,
+        venue: "polymarket",
+        strategy: `sports_${s.kind}`,
+        market_id: s.groupKey,
+        title: s.title,
+        cost_usd: s.cost ?? null,
+        locked_profit_usd: s.kind === "outright_underround" ? s.edge : null,
+        edge: s.edge,
+        payload: s
+      }))
+    );
+  }
+
   await insertRows(cfg, "bot_heartbeats", [
     {
       ts: dashboard.timestamp,
