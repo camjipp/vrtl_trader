@@ -44,3 +44,47 @@ test("detectSportsSignals finds over totals ladder violation", () => {
   assert.equal(signals[0]?.kind, "ladder_violation");
   assert.ok(Math.abs((signals[0]?.edge ?? 0) - 0.1) < 1e-9);
 });
+
+test("detectSportsSignals finds dutching discount against team no", () => {
+  const signals = detectSportsSignals(
+    [
+      market("Will Arsenal beat Chelsea?", 0.8),
+      market("Will Chelsea beat Arsenal?", 0.12),
+      market("Will Arsenal vs Chelsea end in a draw?", 0.16)
+    ],
+    "2026-01-01T00:00:00.000Z"
+  );
+
+  const dutching = signals.find((s) => s.kind === "dutching_discount");
+  assert.equal(dutching?.title, "Arsenal NO dutching discount");
+  assert.ok(Math.abs((dutching?.edge ?? 0) - 0.08) < 1e-9);
+  assert.equal(dutching?.markets.length, 3);
+});
+
+test("detectSportsSignals finds complementary total underround", () => {
+  const signals = detectSportsSignals(
+    [
+      market("Will Lakers vs Knicks total be over 225.5 points?", 0.47),
+      market("Will Lakers vs Knicks total be under 225.5 points?", 0.48)
+    ],
+    "2026-01-01T00:00:00.000Z"
+  );
+
+  const pair = signals.find((s) => s.kind === "total_pair_underround");
+  assert.equal(pair?.title, "Over/Under 225.5 underround");
+  assert.ok(Math.abs((pair?.edge ?? 0) - 0.05) < 1e-9);
+});
+
+test("detectSportsSignals finds under totals ladder violation", () => {
+  const signals = detectSportsSignals(
+    [
+      market("Will Lakers vs Knicks total be under 1.5 points?", 0.55),
+      market("Will Lakers vs Knicks total be under 2.5 points?", 0.5)
+    ],
+    "2026-01-01T00:00:00.000Z"
+  );
+
+  const ladder = signals.find((s) => s.kind === "ladder_violation");
+  assert.equal(ladder?.title, "UNDER ladder violation");
+  assert.ok(Math.abs((ladder?.edge ?? 0) - 0.05) < 1e-9);
+});
